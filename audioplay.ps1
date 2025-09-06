@@ -1,16 +1,21 @@
 function PlayAudioFromUrl {
     param([string]$url)
     try {
-        $tmp = "$env:TEMP\temp.wav"
+        $tmp = "$env:TEMP\temp_$((Get-Random)).wav"
         Invoke-WebRequest $url -OutFile $tmp -UseBasicParsing
         Start-Sleep -Milliseconds 500
+
         if ((Get-Item $tmp).Length -gt 1000) {
+            Start-Job -ScriptBlock {
+                param($path)
+                $p = New-Object System.Media.SoundPlayer $path
+                $p.PlaySync()
+                Remove-Item $path -Force
+            } -ArgumentList $tmp | Out-Null
+
             Write-Output "✅ Playing: $url"
-            $p = New-Object System.Media.SoundPlayer $tmp
-            $p.PlaySync()
-            Remove-Item $tmp -Force
         } else {
-            Write-Output "❌ Invalid or empty audio file."
+            Write-Output "❌ File too small or empty."
         }
     } catch {
         Write-Output "❌ Error: $($_.Exception.Message)"
